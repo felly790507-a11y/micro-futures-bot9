@@ -1,4 +1,4 @@
-# src/signal.py
+﻿# src/signal.py
 from collections import deque
 from dataclasses import dataclass
 

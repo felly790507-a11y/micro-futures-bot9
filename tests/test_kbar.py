@@ -1,5 +1,5 @@
-# tests/test_kbar.py
-from src.signal import KBarAggregator
+﻿# tests/test_kbar.py
+from src.signals import KBarAggregator
 from src.data import Tick
 
 def test_kbar_3ticks():

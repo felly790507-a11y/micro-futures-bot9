@@ -1,7 +1,7 @@
-# src/strategy.py
+﻿# src/strategy.py
 import time
 from loguru import logger
-from src.signal import KBarAggregator, TwoTickDetector
+from src.signals import KBarAggregator, TwoTickDetector
 from src.state import StrategyState
 
 class TwoTickStrategy:

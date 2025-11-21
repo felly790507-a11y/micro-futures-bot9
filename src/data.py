@@ -1,4 +1,4 @@
-# src/data.py
+﻿# src/data.py
 import csv
 import time
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ class Tick:
     side: str
 
 def replay_csv(path):
-    """簡單逐筆回放 generator，CSV 欄位: ts,price,qty,side"""
+    """蝪∪??? generator嚗SV 甈?: ts,price,qty,side"""
     with open(path, newline="", encoding="utf8") as f:
         reader = csv.DictReader(f)
         for r in reader:
