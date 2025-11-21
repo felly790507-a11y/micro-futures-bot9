@@ -1,26 +1,24 @@
-# run.py
-import asyncio, yaml, time, os
-from loguru import logger
-from src.data import replay_csv, Tick
-from src.execu import ExecutorSim
-from src.strategy import TwoTickStrategy
+import json
+import os
 
-def load_cfg(path="configs/config.yml"):
-    return yaml.safe_load(open(path, encoding="utf8"))
+# load config.json
+cfg_path = os.path.join(os.path.dirname(__file__), "config.json")
+with open(cfg_path, "r", encoding="utf8") as f:
+    cfg = json.load(f)
 
-async def run_simulate(cfg):
-    exe = ExecutorSim(cfg)
-    strat = TwoTickStrategy(cfg, exe)
-    csv_path = cfg.get("replay_csv", "data/sample_ticks.csv")
-    for tick in replay_csv(csv_path):
-        await strat.on_tick(tick)
-        await asyncio.sleep(0.01)  # control replay speed
+mode = cfg.get("mode", "simulate")
 
-if __name__ == "__main__":
-    cfg = load_cfg()
-    logger.remove()
-    logger.add(lambda msg: print(msg, end=""))
-    if cfg["mode"] == "simulate":
-        asyncio.run(run_simulate(cfg))
-    else:
-        print("Paper/live mode requires Shioaji executor. Implement ExecutorShioaji and subscription.")
+# 如果不是模擬模式才嘗試登入 shioaji
+api = None
+if mode != "simulate":
+    import shioaji as sj
+    try:
+        # simulation=True 表示 paper 模擬環境；實盤請設定 simulation=False 並確認帳戶權限
+        api = sj.Shioaji(simulation=True)
+        api.login(api_key=cfg["api_key"], secret_key=cfg["secret_key"])
+        print("✅ Shioaji 登入成功（simulation=True）")
+    except Exception as e:
+        print("❌ Shioaji 登入失敗:", e)
+        api = None
+else:
+    print("模擬模式啟動（simulate），未嘗試登入 Shioaji")

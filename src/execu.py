@@ -2,14 +2,19 @@
 import asyncio
 from loguru import logger
 
-class ExecutorSim:
-    def __init__(self, cfg):
+class ExecutorShioaji:
+    def __init__(self, cfg, api):
         self.cfg = cfg
+        self.api = api
 
     async def send_ioc(self, side, price, qty):
-        logger.info(f"[SIM] IOC {side} price={price} qty={qty}")
-        await asyncio.sleep(0)  # simulate tiny latency
-        filled = qty  # deterministic: fully filled in sim
-        return {"filled_qty": filled, "avg_price": price}
+        # 這裡示範同步呼叫包到非阻塞執行緒或直接呼叫視你程式架構
+        try:
+            # 依你 shioaji 版本填寫正確下單呼叫
+            # ex: order = self.api.order(..., price=price, qty=qty, ioc=True)
+            # return {"filled_qty": filled, "avg_price": avg}
+            pass
+        except Exception as e:
+            print("Shioaji 下單錯誤:", e)
+            return {"filled_qty": 0, "avg_price": price}
 
-# NOTE: 若要接 Shioaji，請在此新增 ExecutorShioaji class 實作 send_ioc 並呼叫 shioaji API

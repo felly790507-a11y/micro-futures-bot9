@@ -1,0 +1,10 @@
+{
+  "mode": "simulate",
+  "api_key": "AMiUAoJurD1QR1M6t7zjMydgVsPtuV2vEWq69JZDXnqv",
+  "secret_key": "jVBvTaR7jYKxfXYcxig7fVgoqqg9VYgmV45jcoFEw16",
+  "symbol": "TXF202512",
+  "target_qty": 1,
+  "ioc_probe_ratio": 0.3,
+  "cooldown_secs": 0.5,
+  "replay_csv": "data/sample_ticks.csv"
+}
