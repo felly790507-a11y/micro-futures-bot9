@@ -1,23 +1,21 @@
-﻿# run.py
+﻿# run.py (final cleaned)
 import os
 import json
 import yaml
 import asyncio
 import time
 from loguru import logger
+import csv
+from dataclasses import dataclass
+from collections import deque
 
-# -----------------------------------------------------------------------------
-# Logger 閮剖?嚗??撓?箏 console ??獢?DEBUG ?舐??渲底蝝?trace嚗?
-# -----------------------------------------------------------------------------
+# Logger setup
 logger.remove()
 logger.add(lambda msg: print(msg, end=""), level="DEBUG")
-if not os.path.exists("logs"):
-    os.makedirs("logs", exist_ok=True)
+os.makedirs("logs", exist_ok=True)
 logger.add("logs/latest.log", rotation="10 MB", level="DEBUG")
 
-# -----------------------------------------------------------------------------
-# Load config.json ?芸?嚗銝??典? fallback ??configs/config.yml
-# -----------------------------------------------------------------------------
+# Load config
 def load_config():
     root = os.path.dirname(__file__)
     cfg_json = os.path.join(root, "config.json")
@@ -25,7 +23,7 @@ def load_config():
 
     if os.path.exists(cfg_json):
         logger.debug(f"Loading config from {cfg_json}")
-        with open(cfg_json, "r", encoding="utf8") as f:
+        with open(cfg_json, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     elif os.path.exists(cfg_yml):
         logger.debug(f"Loading config from {cfg_yml}")
@@ -37,33 +35,20 @@ def load_config():
 cfg = load_config()
 mode = cfg.get("mode", "simulate")
 
-# -----------------------------------------------------------------------------
-# Shioaji login only if not simulate
-# -----------------------------------------------------------------------------
-api = None
-if mode != "simulate":
-    try:
-        import shioaji as sj
-        # simulation True -> paper-like environment; production set to False when ready
-        api = sj.Shioaji(simulation=True)
-        api.login(api_key=cfg.get("api_key", ""), secret_key=cfg.get("secret_key", ""))
-        logger.info("??Shioaji ?餃??嚗imulation=True嚗?)
-    except Exception as e:
-        logger.error(f"??Shioaji ?餃憭望?: {e}")
-        api = None
+# Inform about simulate mode
+if mode == "simulate":
+    logger.info("模擬模式啟動（simulate），未嘗試登入 Shioaji")
 else:
-    logger.info("璅⊥璅∪???嚗imulate嚗??芸?閰衣??Shioaji")
+    logger.info("非模擬模式，將嘗試登入 Shioaji（請確認憑證與環境）")
 
-# -----------------------------------------------------------------------------
-# Minimal Executor implementations
-# -----------------------------------------------------------------------------
+# Executors
 class ExecutorSim:
     def __init__(self, cfg):
         self.cfg = cfg
 
     async def send_ioc(self, side, price, qty):
         logger.info(f"[SIM] IOC {side} price={price} qty={qty}")
-        await asyncio.sleep(0)  # simulate latency
+        await asyncio.sleep(0)
         filled = qty
         return {"filled_qty": filled, "avg_price": price}
 
@@ -73,25 +58,16 @@ class ExecutorShioaji:
         self.api = api
 
     async def send_ioc(self, side, price, qty):
-        # Skeleton: implement actual shioaji order call according to your shioaji version
         logger.info(f"[SHIOAJI-SKELETON] IOC {side} price={price} qty={qty}")
         try:
-            # Example placeholder - replace with real order call for your shioaji version
-            # order = self.api.order(..., price=price, qty=qty, ioc=True)
-            # parse order result to extract filled_qty and avg_price
-            await asyncio.sleep(0)  # keep async signature
+            # 實作呼叫 API 的地方（此處為 skeleton）
+            await asyncio.sleep(0)
             return {"filled_qty": qty, "avg_price": price}
         except Exception as e:
-            logger.error(f"Shioaji 銝?航炊: {e}")
+            logger.error(f"Shioaji 下單錯誤: {e}")
             return {"filled_qty": 0, "avg_price": price}
 
-# -----------------------------------------------------------------------------
-# Minimal data replay, signal, state, strategy (kept small and self-contained)
-# -----------------------------------------------------------------------------
-import csv
-from dataclasses import dataclass
-from collections import deque
-
+# Data structures and replay
 @dataclass
 class Tick:
     ts: float
@@ -102,13 +78,20 @@ class Tick:
 def replay_csv(path):
     if not os.path.exists(path):
         raise FileNotFoundError(path)
-    with open(path, newline="", encoding="utf8") as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            try:
-                yield Tick(ts=float(r["ts"]), price=float(r["price"]), qty=int(r["qty"]), side=r.get("side",""))
-            except Exception as e:
-                logger.debug(f"Skipping malformed row: {r} -> {e}")
+    # try utf-8-sig to handle BOM, fallback to utf-8 and latin-1
+    for enc in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            with open(path, newline="", encoding=enc) as f:
+                reader = csv.DictReader(f)
+                for r in reader:
+                    try:
+                        yield Tick(ts=float(r["ts"]), price=float(r["price"]), qty=int(r["qty"]), side=r.get("side",""))
+                    except Exception as e:
+                        logger.debug(f"Skipping malformed row: {r} -> {e}")
+            return
+        except UnicodeDecodeError:
+            logger.debug(f"Failed reading {path} with encoding {enc}, trying next.")
+    raise UnicodeDecodeError("Unable to decode CSV file with tried encodings.")
 
 class KBar:
     def __init__(self, ts, open_p, high, low, close, vol):
@@ -143,11 +126,13 @@ class TwoTickDetector:
         self.recent.append(tick)
 
     def two_rise(self):
-        if len(self.recent) < 2: return False
+        if len(self.recent) < 2:
+            return False
         return self.recent[-2].price < self.recent[-1].price
 
     def two_fall(self):
-        if len(self.recent) < 2: return False
+        if len(self.recent) < 2:
+            return False
         return self.recent[-2].price > self.recent[-1].price
 
 class StrategyState:
@@ -219,38 +204,35 @@ class TwoTickStrategy:
             logger.info(f"Sold {filled}, pos={self.state.position}")
             self.last_action = time.time()
 
-# -----------------------------------------------------------------------------
 # Main simulate runner
-# -----------------------------------------------------------------------------
 async def run_simulate(cfg):
     exe = ExecutorSim(cfg)
     strat = TwoTickStrategy(cfg, exe)
     csv_path = cfg.get("replay_csv", "data/sample_ticks.csv")
     logger.info(f"Starting replay from {csv_path}")
     for tick in replay_csv(csv_path):
+        logger.debug(f"[TRACE-REPLAY] tick ts={tick.ts} price={tick.price} qty={tick.qty} side={tick.side}")
         await strat.on_tick(tick)
         await asyncio.sleep(0.01)
 
-# -----------------------------------------------------------------------------
-# If paper/live, select ExecutorShioaji; currently skeleton only
-# -----------------------------------------------------------------------------
 async def run_live_or_paper(cfg, api):
     if api is None:
         logger.error("API not available for paper/live mode.")
         return
     exe = ExecutorShioaji(cfg, api)
     strat = TwoTickStrategy(cfg, exe)
-    # TODO: subscribe quotes and feed ticks into strat.on_tick
     logger.info("Paper/live mode selected - subscription logic not implemented in this skeleton.")
 
-# -----------------------------------------------------------------------------
-# Entrypoint
-# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
         if mode == "simulate":
             asyncio.run(run_simulate(cfg))
         else:
-            asyncio.run(run_live_or_paper(cfg, api))
+            asyncio.run(run_live_or_paper(cfg, None))
     except Exception as e:
         logger.exception(f"Unhandled error in run.py: {e}")
+
+
+
+
+
