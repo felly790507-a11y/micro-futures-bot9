@@ -1,0 +1,2 @@
+Version: 1.11.2
+Arguments: ['C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\uv\\cache\\archive-v0\\wNCaG6GE1hjqllxcaWvRD\\Scripts\\delvewheel', 'repair', '--add-path', 'libs\\\\solclient_Win_vs2015_7.33.0.3\\\\lib\\\\Win64', 'dist\\\\pysolace-*.whl']

@@ -1,0 +1,3 @@
+[console_scripts]
+pysolace = pysolace:main
+

@@ -1,0 +1,188 @@
+Metadata-Version: 2.2
+Name: pysolace
+Version: 0.9.53
+Summary: Python client library for Solace PubSub+ event broker, enabling easy integration for messaging applications.
+Keywords: solace,pubsub+,messaging,event broker,queue,topic,publish,subscribe
+Author-Email: yvictor <yvictor3141@gmail.com>
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Networking
+Classifier: Topic :: Communications
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: C++
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: Microsoft :: Windows
+Project-URL: Homepage, https://github.com/yvictor/pysolace
+Project-URL: Repository, https://github.com/yvictor/pysolace
+Requires-Python: >=3.6
+Requires-Dist: loguru>=0.6.0
+Requires-Dist: msgpack>=1.0.3
+Requires-Dist: orjson>=3.3.1
+Requires-Dist: typer>=0.10.0
+Description-Content-Type: text/markdown
+
+# PySolace
+
+PySolace is a Python library for interacting with Solace PubSub+ event brokers. It provides a simple and efficient way to send and receive messages.
+
+## Features
+
+- Intuitive Pythonic API for Solace PubSub+ broker interaction.
+- Supports core messaging patterns:
+    - Publish/Subscribe for topics.
+    - Request-Reply (client-side).
+- Flexible message publishing:
+    - Python dictionaries (automatically serialized, e.g., via `msgpack` or `orjson` by the underlying C++ layer if configured).
+    - Raw byte payloads with specified content type.
+    - Multi-message batch publishing for raw payloads.
+- Asynchronous, event-driven architecture using callbacks for:
+    - Incoming messages.
+    - Session events (connect, disconnect, errors, etc.).
+    - Asynchronous replies in request-reply.
+- Robust connection management:
+    - Configurable connection timeouts, reconnect retries, and keep-alive intervals.
+    - Explicit connect and disconnect lifecycle control.
+- Client identification with configurable client names.
+- Exposes Solace log levels (`SolLogLevel`) for client-side logging configuration.
+- Exposes Solace return codes (`SolReturnCode`) for granular status checking of operations.
+- High-performance C++ core using Pybind11 for efficient message handling.
+- Includes a basic command-line interface (via `pysolace` script) for quick subscribe/publish operations (powered by Typer).
+- Thread-safe components for use in multi-threaded applications (corrid generation, callback wrappers).
+
+## Installation
+
+You can install PySolace from PyPI:
+
+```bash
+pip install pysolace
+```
+
+use `uv` to install
+```
+uv add pysolace
+```
+
+install the pysolace executable
+```
+uv tool install pysolace
+```
+
+## Usage
+
+```python
+import time
+from pysolace import SolClient, SolReturnCode
+
+# 1. Define callback functions (optional, but good practice)
+def on_message(topic: str, message: dict):
+    print(f"Message on topic '{topic}': {message}")
+
+def on_event(resp_code: int, event_code: int, info: str, event_str: str):
+    print(f"Solace Event: {event_str} (Info: {info})")
+
+# 2. Initialize the SolClient
+client = SolClient() 
+# 3. Set your callbacks
+client.set_msg_callback(on_message)
+client.set_event_callback(on_event)
+
+# 4. Connect to Solace
+# Replace with your broker details!
+host = "tcp://your-solace-host:55555"
+vpn = "your-vpn"
+user = "your-username"
+password = "your-password"
+
+print(f"Connecting to {host}...")
+rc = client.connect(host, vpn, user, password, clientname="SimpleExample")
+
+if rc == SolReturnCode.SOLCLIENT_OK:
+    print("Connected!")
+
+    # 5. Subscribe to a topic
+    topic_subscribe = "pysolace/simple/test"
+    client.subscribe(topic_subscribe)
+    print(f"Subscribed to '{topic_subscribe}'")
+
+    # 6. Publish a message
+    payload = {"text": "Hello from simple PySolace example!"}
+    pub_rc = client.publish(topic_subscribe, payload)
+    if pub_rc == SolReturnCode.SOLCLIENT_OK:
+        print(f"Published message: {payload}")
+    else:
+        print(f"Publish failed, code: {pub_rc}")
+
+    # 7. Keep the client running (e.g., to receive messages)
+    print("Client running. Press Ctrl+C to exit.")
+    try:
+        # In a real app, you might have a more sophisticated main loop or integrate with an event framework.
+        # For this example, we just sleep and wait for messages or Ctrl+C.
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nExiting...")
+    finally:
+        # 8. Disconnect the client
+        print("Disconnecting...")
+        client.disconnect()
+        # client.cleanup() # Optional: if you need to release all underlying resources immediately
+        print("Disconnected.")
+else:
+    print(f"Connection failed! Return code: {rc}")
+
+```
+
+## Building from Source
+
+This project uses `scikit-build-core` and `pybind11` for building the C++ extensions. You'll need a C++ compiler and CMake installed.
+
+``` bash
+CWD=$PWD uv build
+```
+
+### Platform-specific builds:
+
+Refer to the `Makefile` for specific build instructions and prerequisites for macOS, Linux (manylinux), and Windows. For example:
+
+-   **Build for macOS:**
+    ```bash
+    make prepare-macos
+    make build-macos
+    ```
+-   **Build for manylinux:**
+    ```bash
+    make prepare-manylinux
+    make build-manylinux
+    ```
+-   **Build for Windows:**
+    ```bash
+    make prepare-windows
+    make build-windows
+    ```
+
+## Development
+
+To set up a development environment, it's recommended to use a virtual environment.
+
+1.  Clone the repository:
+    ```bash
+    git clone <repository-url>
+    cd pysolace
+    ```
+2.  Install dependencies (including development dependencies):
+    ```bash
+    uv sync
+    ```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.

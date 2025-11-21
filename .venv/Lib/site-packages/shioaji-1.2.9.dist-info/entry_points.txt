@@ -1,0 +1,3 @@
+[console_scripts]
+shioaji = shioaji:main
+
