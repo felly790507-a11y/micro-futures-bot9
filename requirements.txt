@@ -1,0 +1,5 @@
+shioaji
+pandas
+pyyaml
+loguru
+pytest

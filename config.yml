@@ -1,0 +1,9 @@
+mode: simulate   # simulate | paper | live
+account:
+  id: ""
+  pwd: ""
+symbol: "TXF202512"
+target_qty: 1
+ioc_probe_ratio: 0.3
+cooldown_secs: 0.5
+log_level: INFO

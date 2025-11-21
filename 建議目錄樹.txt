@@ -1,0 +1,19 @@
+micro-futures-bot/
+├─ configs/
+│  └─ config.yml
+├─ src/
+│  ├─ __init__.py
+│  ├─ data.py
+│  ├─ signal.py
+│  ├─ state.py
+│  ├─ execu.py
+│  └─ strategy.py
+├─ logs/
+├─ data/
+│  └─ sample_ticks.csv
+├─ tests/
+│  └─ test_kbar.py
+├─ run.py
+├─ requirements.txt
+├─ README.md
+└─ .gitignore
