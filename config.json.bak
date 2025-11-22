@@ -1,0 +1,11 @@
+{
+  "mode": "simulate",
+  "api_key": "YOUR_API_KEY",
+  "secret_key": "YOUR_SECRET_KEY",
+  "symbol": "TXF202512",
+  "target_qty": 1,
+  "ioc_probe_ratio": 0.3,
+  "cooldown_secs": 0.0,
+  "log_level": "DEBUG",
+  "replay_csv": "data/sample_ticks.csv"
+}
